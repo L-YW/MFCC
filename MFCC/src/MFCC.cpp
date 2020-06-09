@@ -78,9 +78,9 @@ int main()
 {
 	WAV header;    // This struct stores wave file header
 	FILE *sourcefile;
-	ofstream outfile1("cepstrum.txt");     // This file stores output cepstrum
-	ofstream outfile2("weights.txt");  // This file stores filter weights
-	sourcefile=fopen("1.wav","rb");  // open the wave file as a binary file
+	ofstream outfile1("cepstrum2.txt");     // This file stores output cepstrum
+	ofstream outfile2("weights2.txt");  // This file stores filter weights
+	sourcefile=fopen("man_voice.wav","rb");  // open the wave file as a binary file
 	fread(&header,sizeof(WAV),1,sourcefile);   // read in the header
 	FS=header.nSamplesPerSec/1000;  // Obtain sampling frequency
 	if (HIGH>(int) (FS/2))                      // Check pre-defined high frequency
