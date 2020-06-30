@@ -80,7 +80,7 @@ int main()
 	FILE *sourcefile;
 	ofstream outfile1("cepstrum2.txt");     // This file stores output cepstrum
 	ofstream outfile2("weights2.txt");  // This file stores filter weights
-	sourcefile=fopen("man_voice.wav","rb");  // open the wave file as a binary file
+	sourcefile=fopen("../data/man_voice.wav","rb");  // open the wave file as a binary file
 	fread(&header,sizeof(WAV),1,sourcefile);   // read in the header
 	FS=header.nSamplesPerSec/1000;  // Obtain sampling frequency
 	if (HIGH>(int) (FS/2))                      // Check pre-defined high frequency
@@ -122,7 +122,6 @@ int main()
 		   
 		zero_padded.clear(); // clear up fft vector
 		fft_mag.clear();    // clear up fft magnitude 
-		//index++;
 		fseek(sourcefile, -(FrmLen-FrmSpace), SEEK_CUR); // move to the next frame
 	}
 
