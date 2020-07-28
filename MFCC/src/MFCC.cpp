@@ -78,8 +78,8 @@ int main()
 {
 	WAV header;    // This struct stores wave file header
 	FILE *sourcefile;
-	ofstream outfile1("cepstrum2.txt");     // This file stores output cepstrum
-	ofstream outfile2("weights2.txt");  // This file stores filter weights
+	ofstream outfile1("cepstrum2.csv");     // This file stores output cepstrum
+	ofstream outfile2("weights2.csv");  // This file stores filter weights
 	sourcefile=fopen("../data/man_voice.wav","rb");  // open the wave file as a binary file
 	fread(&header,sizeof(WAV),1,sourcefile);   // read in the header
 	FS=header.nSamplesPerSec/1000;  // Obtain sampling frequency
@@ -128,7 +128,7 @@ int main()
 	int length=Coeff.size();  // Output cepstrum and log energy to a file. Each row is a feature vector
 	for(int i=0;i<length;++i)
 	{
-		outfile1<<Coeff[i]<<' ';
+		outfile1<<Coeff[i]<<',';
 		if((i+1)%(PCEP+LOGENERGY)==0)
 			outfile1<<endl;
 	}
