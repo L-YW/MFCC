@@ -12,14 +12,14 @@ static const int vector_max_len =  13;
 static const int min_vector_len =  5;
 float vector_char[vector_max_len];
 
-int standard_features(const char* file_name, const char* file_name2, int sample_num, bool debug_print);
+int standard_features(const char* file_name, const char* file_name2);
 
 int main(){
-    standard_features("../data/cepstrum_A3.csv", "../data/feature_A3.csv", 57, true);
+    standard_features("../data/cepstrum_Znavi.csv", "../data/feature_Znavi.csv");
     printf("complete!\n");
 }
 
-int standard_features(const char* file_name, const char* file_name2, int sample_num, bool debug_print){
+int standard_features(const char* file_name, const char* file_name2){
     float normalize_value=0;
     float instance_value = 0;
     float max_value = 0;
