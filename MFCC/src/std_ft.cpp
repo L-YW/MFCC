@@ -15,7 +15,8 @@ float vector_char[vector_max_len];
 int standard_features(const char* file_name, const char* file_name2, int sample_num, bool debug_print);
 
 int main(){
-    standard_features("cepstrum2.csv", "feature_nor.txt", 57, true);
+    standard_features("../data/cepstrum_A3.csv", "../data/feature_A3.csv", 57, true);
+    printf("complete!\n");
 }
 
 int standard_features(const char* file_name, const char* file_name2, int sample_num, bool debug_print){
