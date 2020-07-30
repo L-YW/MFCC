@@ -19,6 +19,8 @@
 
 using namespace std;
 
+MFCC::MFCC(){}
+
 typedef struct     // WAV stores wave file header
 {
         int rId;    
@@ -38,98 +40,12 @@ typedef struct     // WAV stores wave file header
         int wSampleLength;    
 }WAV;
 
-
 // Global variables
-	int FS=8;                    // default sampling rate in KHz, actual value will be obtained from wave file
-	int HIGH=4;                   // default high frequency limit in KHz
-	int LOW=0;                    // default low frequency limit in KHz
-	int FrmLen=25;             // frame length in ms
-	int FrmSpace=10;           // frame space in ms
-	const int LOGENERGY=1;        // whether to include log energy in the output
-	const unsigned long FFTLen=512;           // FFT points
 	const double PI=3.1415926536;
-	const int FiltNum=26;              // number of filters
-	const int PCEP=12;                 // number of cepstrum
-	vector <double> Hamming;            // Hamming window vector
-	float FiltWeight[FiltNum][FFTLen/2+1]; //This is the Mel filterbank weights             
-	vector<float> Coeff; // This stores cepstrum and log energy
+	vector <double> Hamming;
 
-	void InitHamming();
-	void HammingWindow(short* buf,float* data);
-	float FrmEnergy(short* data);
-	void zero_fft(float *buffer,vector<complex<float> >& vec);
-	void FFT(const unsigned long & fftlen, vector<complex<float> >& vec);
-	void InitFilt(float (*w)[FFTLen/2+1], int num_filt); 
-	void CreateFilt(float (*w)[FFTLen/2+1], int num_filt, int Fs, int high, int low);
-	void mag_square(vector<complex<float> > & vec, vector<float> & vec_mag);
-	void Mel_EN(float (*w)[FFTLen/2+1],int num_filt, vector<float>& vec_mag, float * M_energy);
-	void Cepstrum(float *M_energy);
-
-int main()
-{
-	WAV header;    // This struct stores wave file header
-	FILE *sourcefile;
-	ofstream outfile1("../data/cepstrum_navi.csv");     // This file stores output cepstrum
-	ofstream outfile2("../data/weights_navi.csv");  // This file stores filter weights
-	sourcefile=fopen("../data/ZiraRUS_navi.wav","rb");  // open the wave file as a binary file
-	fread(&header,sizeof(WAV),1,sourcefile);   // read in the header
-	FS=header.nSamplesPerSec/1000;  // Obtain sampling frequency
-	if (HIGH>(int) (FS/2))                      // Check pre-defined high frequency
-	   HIGH=(int) (FS/2);
-	if (LOW>HIGH)                               // Check pre-defined low frequency
-	   LOW=(int)(HIGH/2);
-	FrmLen=FrmLen*FS;                          // Obtain frame length in samples
-	FrmSpace=FrmSpace*FS;                      // Obtain frame space in samples
-	
-	short buffer[FrmLen];    // buffer stores a frame of data, each 2 byte
-	float data[FrmLen];
-	float energy=0.0;
-	float mel_energy[FiltNum]; // This stores the channel output energy for a frame
-
-	vector<complex<float> > zero_padded;   // zero_padded is a vector which stores the zero padded data and FFT
-	vector <float> fft_mag;                // This is the magnitude squared FFT
-		
-	InitHamming();      //Create a Hamming window of length FrmLen
-	InitFilt(FiltWeight, FiltNum); // Initialize filter weights to all zero
-	CreateFilt(FiltWeight, FiltNum, FS*1000, HIGH*1000, LOW*1000);    // Compute filter weights
-	for (int i=0;i<FiltNum; i++)          // Output filter weights to a file
-	  { for (int j=0;j<FFTLen/2+1;j++)
-	       outfile2<<FiltWeight[i][j]<<' ';
-	   outfile2<<endl;
-	  } 
-	
-    // While loop reads in each frame, and compute cepstrum features
-	while(fread(buffer,sizeof(short),FrmLen,sourcefile)==FrmLen)  //  continue to read in a frame of data
-	{
-
-		HammingWindow(buffer,data);  // multiply Hamming window to speech, return to data 
-		energy=FrmEnergy(buffer);//Get frame energy without windowing
-		zero_fft(data,zero_padded); // This step first zero pad data, and do FFT
-		mag_square(zero_padded, fft_mag);    // This step does magnitude square for the first half of FFT
-        Mel_EN(FiltWeight,FiltNum, fft_mag, mel_energy); // This step computes output log energy of each channel
-		Cepstrum(mel_energy);
-		if (LOGENERGY)   // whether to include log energy term or not
-		   Coeff.push_back(energy);
-		   
-		zero_padded.clear(); // clear up fft vector
-		fft_mag.clear();    // clear up fft magnitude 
-		fseek(sourcefile, -(FrmLen-FrmSpace), SEEK_CUR); // move to the next frame
-	}
-
-	int length=Coeff.size();  // Output cepstrum and log energy to a file. Each row is a feature vector
-	for(int i=0;i<length;++i)
-	{
-		outfile1<<Coeff[i]<<',';
-		if((i+1)%(PCEP+LOGENERGY)==0)
-			outfile1<<endl;
-	}
-
-    fclose(sourcefile);
-	return 0;
-
-}
 // This function create a hamming window
-void InitHamming()
+void MFCC::InitHamming(int FrmLen)
 {
 	float two_pi=8.0F*atan(1.0F);   // This is just 2*pi;
 	float temp;
@@ -141,7 +57,7 @@ void InitHamming()
     }
 }
 
-void HammingWindow(short* buf,float* data)  // This function multiply a Hamming window to a frame
+void MFCC::HammingWindow(short* buf,float* data, int FrmLen)  // This function multiply a Hamming window to a frame
 {
 	int i;
 	for(i=0;i<FrmLen;i++)
@@ -150,7 +66,7 @@ void HammingWindow(short* buf,float* data)  // This function multiply a Hamming 
 	}
 }
 
-float FrmEnergy(short* data)        // This function computes frame energy
+float MFCC::FrmEnergy(short* data, int FrmLen)        // This function computes frame energy
 {
 	int i;
 	float frm_en=0.0;
@@ -161,8 +77,7 @@ float FrmEnergy(short* data)        // This function computes frame energy
 	return frm_en;
 }
 
-
-void zero_fft(float *data,vector<complex<float> >& vec) // This function does zero padding and FFT
+void MFCC::zero_fft(float *data,vector<complex<float> >& vec, int FrmLen, const unsigned long FFTLen) // This function does zero padding and FFT
 {	
 	for(int i=0;i<FFTLen;i++)     // This step does zero padding
 	{
@@ -178,10 +93,7 @@ void zero_fft(float *data,vector<complex<float> >& vec) // This function does ze
 	FFT(FFTLen, vec);    // Compute FFT
 }
 
-
-
-
-void FFT(const unsigned long & fftlen, vector<complex<float> >& vec) 
+void MFCC::FFT(const unsigned long & fftlen, vector<complex<float> >& vec) 
 { 		 
 	unsigned long ulPower = 0;  
 	unsigned long fftlen1 = fftlen - 1; 
@@ -250,47 +162,48 @@ void FFT(const unsigned long & fftlen, vector<complex<float> >& vec)
 
 // This function initialize filter weights to 0
 
-void InitFilt(float (*w)[FFTLen/2+1], int num_filt)
+void MFCC::InitFilt(const int FiltNum, const unsigned long FFTLen)
 {
-  int i,j;
-  for (i=0;i<num_filt;i++)
-      for (j=0;j<FFTLen/2+1;j++)
-	     *(*(w+i)+j)=0.0;
+	float w[FiltNum][FFTLen/2+1];
+  	int i,j;
+  	for (i=0;i<FiltNum;i++)
+    	for (j=0;j<FFTLen/2+1;j++)
+	    	 *(*(w+i)+j)=0.0;
 }
 
 // This function creates a Mel weight matrix
 
-void CreateFilt(float (*w)[FFTLen/2+1], int num_filt, int Fs, int high, int low)
-{
+void MFCC::CreateFilt(const int FiltNum, const unsigned long FFTLen, int Fs, int high, int low)
+{	float w[FiltNum][FFTLen/2+1];	
    float df=(float) Fs/(float) FFTLen;    // FFT interval
    int indexlow=round((float) FFTLen*(float) low/(float) Fs); // FFT index of low freq limit
    int indexhigh=round((float) FFTLen*(float) high/(float) Fs); // FFT index of high freq limit
 
    float melmax=2595.0*log10(1.0+(float) high/700.0); // mel high frequency
    float melmin=2595.0*log10(1.0+(float) low/700.0);  // mel low frequency
-   float melinc=(melmax-melmin)/(float) (num_filt+1); //mel half bandwidth
-   float melcenters[num_filt];        // mel center frequencies
-   float fcenters[num_filt];          // Hertz center frequencies
-   int indexcenter[num_filt];         // FFT index for Hertz centers
-   int indexstart[num_filt];   //FFT index for the first sample of each filter
-   int indexstop[num_filt];    //FFT index for the last sample of each filter
+   float melinc=(melmax-melmin)/(float) (FiltNum+1); //mel half bandwidth
+   float melcenters[FiltNum];        // mel center frequencies
+   float fcenters[FiltNum];          // Hertz center frequencies
+   int indexcenter[FiltNum];         // FFT index for Hertz centers
+   int indexstart[FiltNum];   //FFT index for the first sample of each filter
+   int indexstop[FiltNum];    //FFT index for the last sample of each filter
    float increment,decrement; // increment and decrement of the left and right ramp
    float sum=0.0;
    int i,j;
-   for (i=1;i<=num_filt;i++)
+   for (i=1;i<=FiltNum;i++)
    {
 	     melcenters[i-1]=(float) i*melinc+melmin;   // compute mel center frequencies
 		 fcenters[i-1]=700.0*(pow(10.0,melcenters[i-1]/2595.0)-1.0); // compute Hertz center frequencies
 		 indexcenter[i-1]=round(fcenters[i-1]/df); // compute fft index for Hertz centers		 
    }
-   for (i=1;i<=num_filt-1;i++)  // Compute the start and end FFT index of each channel
+   for (i=1;i<=FiltNum-1;i++)  // Compute the start and end FFT index of each channel
       {
 	    indexstart[i]=indexcenter[i-1];
 		indexstop[i-1]=indexcenter[i];		
 	  }
    indexstart[0]=indexlow;
-   indexstop[num_filt-1]=indexhigh;
-   for (i=1;i<=num_filt;i++)
+   indexstop[FiltNum-1]=indexhigh;
+   for (i=1;i<=FiltNum;i++)
    {
       increment=1.0/((float) indexcenter[i-1]-(float) indexstart[i-1]); // left ramp
 	  for (j=indexstart[i-1];j<=indexcenter[i-1];j++)
@@ -300,7 +213,7 @@ void CreateFilt(float (*w)[FFTLen/2+1], int num_filt, int Fs, int high, int low)
 	     w[i-1][j]=1.0-((float)j-(float)indexcenter[i-1])*decrement;		 
    }
 
-   for (i=1;i<=num_filt;i++)     // Normalize filter weights by sum
+   for (i=1;i<=FiltNum;i++)     // Normalize filter weights by sum
    {
        for (j=1;j<=FFTLen/2+1;j++)
 	      sum=sum+w[i-1][j-1];
@@ -310,7 +223,7 @@ void CreateFilt(float (*w)[FFTLen/2+1], int num_filt, int Fs, int high, int low)
    }
 }
 
-void mag_square(vector<complex<float> > &vec, vector<float> &vec_mag) // This function computes magnitude squared FFT
+void MFCC::mag_square(vector<complex<float> > &vec, vector<float> &vec_mag, const unsigned long FFTLen) // This function computes magnitude squared FFT
 {
   int i;
   float temp;
@@ -322,13 +235,14 @@ void mag_square(vector<complex<float> > &vec, vector<float> &vec_mag) // This fu
        	   	   
 }
 
-void Mel_EN(float (*w)[FFTLen/2+1],int num_filt, vector<float>& vec_mag, float * M_energy) // computes log energy of each channel
+void MFCC::Mel_EN(const int FiltNum, const unsigned long FFTLen, vector<float>& vec_mag, float * M_energy) // computes log energy of each channel
 {
+	float w[FiltNum][FFTLen/2+1];	
    int i,j;
-   for (i=1;i<=num_filt;i++)    // set initial energy value to 0
+   for (i=1;i<=FiltNum;i++)    // set initial energy value to 0
      M_energy[i-1]=0.0F;
    
-   for (i=1;i<=num_filt;i++)
+   for (i=1;i<=FiltNum;i++)
    {
      for (j=1;j<=FFTLen/2+1;j++)
          M_energy[i-1]=M_energy[i-1]+w[i-1][j-1]*vec_mag[j-1];
@@ -339,8 +253,9 @@ void Mel_EN(float (*w)[FFTLen/2+1],int num_filt, vector<float>& vec_mag, float *
 
 // Compute Mel cepstrum
 
-void Cepstrum(float *M_energy)
+void MFCC::Cepstrum(float *M_energy, const int FiltNum, const int PCEP)
 {
+	vector<float> Coeff; // This stores cepstrum and log energy
 	int i,j;
 	float Cep[PCEP];
     for (i=1;i<=PCEP;i++)
@@ -353,4 +268,66 @@ void Cepstrum(float *M_energy)
 	  
 }
 
+void MFCC::the_main_thing(const char* cep_filename, const char* weight_filename, const char* wav_filename)
+{
+	WAV header;    // This struct stores wave file header
+	FILE *sourcefile;
+	ofstream outfile1(cep_filename);     // This file stores output cepstrum
+	ofstream outfile2(weight_filename);  // This file stores filter weights
+	sourcefile=fopen(wav_filename);  // open the wave file as a binary file
+	fread(&header,sizeof(WAV), 1, sourcefile);   // read in the header
+	FS=header.nSamplesPerSec/1000;  // Obtain sampling frequency
+	if (HIGH>(int) (FS/2))                      // Check pre-defined high frequency
+	   HIGH=(int) (FS/2);
+	if (LOW>HIGH)                               // Check pre-defined low frequency
+	   LOW=(int)(HIGH/2);
+	FrmLen=FrmLen*FS;                          // Obtain frame length in samples
+	FrmSpace=FrmSpace*FS;                      // Obtain frame space in samples
+	
+	short buffer[FrmLen];    // buffer stores a frame of data, each 2 byte
+	float data[FrmLen];
+	float energy=0.0;
+	float mel_energy[FiltNum]; // This stores the channel output energy for a frame
 
+	vector<complex<float> > zero_padded;   // zero_padded is a vector which stores the zero padded data and FFT
+	vector <float> fft_mag;                // This is the magnitude squared FFT
+		
+	InitHamming(FrmLen);      //Create a Hamming window of length FrmLen
+	InitFilt(FiltNum, FFTLen); // Initialize filter weights to all zero
+	CreateFilt(FiltNum, FiltNum, FS*1000, HIGH*1000, LOW*1000);    // Compute filter weights
+	for (int i=0;i<FiltNum; i++)          // Output filter weights to a file
+	  { for (int j=0;j<FFTLen/2+1;j++)
+	       outfile2<<FiltWeight[i][j]<<' ';
+	   outfile2<<endl;
+	  } 
+	
+    // While loop reads in each frame, and compute cepstrum features
+	while(fread(buffer,sizeof(short),FrmLen,sourcefile)==FrmLen)  //  continue to read in a frame of data
+	{
+
+		HammingWindow(buffer, data, FrmLen);  // multiply Hamming window to speech, return to data 
+		energy=FrmEnergy(buffer, FrmLen);//Get frame energy without windowing
+		zero_fft(data,zero_padded, FrmLen, FFTLen); // This step first zero pad data, and do FFT
+		mag_square(zero_padded, fft_mag, FFTLen);    // This step does magnitude square for the first half of FFT
+        Mel_EN(FiltNum, FFTLen, fft_mag, mel_energy); // This step computes output log energy of each channel
+		Cepstrum(mel_energy, FiltNum, PCEP);
+		if (LOGENERGY)   // whether to include log energy term or not
+		   Coeff.push_back(energy);
+		   
+		zero_padded.clear(); // clear up fft vector
+		fft_mag.clear();    // clear up fft magnitude 
+		fseek(sourcefile, -(FrmLen-FrmSpace), SEEK_CUR); // move to the next frame
+	}
+
+	int length=Coeff.size();  // Output cepstrum and log energy to a file. Each row is a feature vector
+	for(int i=0;i<length;++i)
+	{
+		outfile1<<Coeff[i]<<',';
+		if((i+1)%(PCEP+LOGENERGY)==0)
+			outfile1<<endl;
+	}
+
+    fclose(sourcefile);
+	return 0;
+
+}
