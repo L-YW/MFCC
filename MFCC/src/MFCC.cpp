@@ -15,8 +15,7 @@
 #include<vector>
 #include <complex> 
 #include <bitset> 
-
-
+#include "MFCC.h"
 
 using namespace std;
 
@@ -41,46 +40,38 @@ typedef struct     // WAV stores wave file header
 
 
 // Global variables
+	int FS=8;                    // default sampling rate in KHz, actual value will be obtained from wave file
+	int HIGH=4;                   // default high frequency limit in KHz
+	int LOW=0;                    // default low frequency limit in KHz
+	int FrmLen=25;             // frame length in ms
+	int FrmSpace=10;           // frame space in ms
+	const int LOGENERGY=1;        // whether to include log energy in the output
+	const unsigned long FFTLen=512;           // FFT points
+	const double PI=3.1415926536;
+	const int FiltNum=26;              // number of filters
+	const int PCEP=12;                 // number of cepstrum
+	vector <double> Hamming;            // Hamming window vector
+	float FiltWeight[FiltNum][FFTLen/2+1]; //This is the Mel filterbank weights             
+	vector<float> Coeff; // This stores cepstrum and log energy
 
-int FS=8;                    // default sampling rate in KHz, actual value will be obtained from wave file
-int HIGH=4;                   // default high frequency limit in KHz
-int LOW=0;                    // default low frequency limit in KHz
-int FrmLen=25;             // frame length in ms
-int FrmSpace=10;           // frame space in ms
-const unsigned long FFTLen=512;           // FFT points
-const double PI=3.1415926536;
-const int FiltNum=26;              // number of filters
-const int PCEP=12;                 // number of cepstrum
-vector <double> Hamming;            // Hamming window vector
-float FiltWeight[FiltNum][FFTLen/2+1]; //This is the Mel filterbank weights
-const int LOGENERGY=1;             // whether to include log energy in the output
-vector<float> Coeff; // This stores cepstrum and log energy
-
-
-
-// function declarations
-void InitHamming();
-void HammingWindow(short* buf,float* data);
-float FrmEnergy(short* data);
-void zero_fft(float *buffer,vector<complex<float> >& vec);
-void FFT(const unsigned long & fftlen, vector<complex<float> >& vec);
-void InitFilt(float (*w)[FFTLen/2+1], int num_filt); 
-void CreateFilt(float (*w)[FFTLen/2+1], int num_filt, int Fs, int high, int low);
-void mag_square(vector<complex<float> > & vec, vector<float> & vec_mag);
-void Mel_EN(float (*w)[FFTLen/2+1],int num_filt, vector<float>& vec_mag, float * M_energy);
-void Cepstrum(float *M_energy);
-
-
-
-
+	void InitHamming();
+	void HammingWindow(short* buf,float* data);
+	float FrmEnergy(short* data);
+	void zero_fft(float *buffer,vector<complex<float> >& vec);
+	void FFT(const unsigned long & fftlen, vector<complex<float> >& vec);
+	void InitFilt(float (*w)[FFTLen/2+1], int num_filt); 
+	void CreateFilt(float (*w)[FFTLen/2+1], int num_filt, int Fs, int high, int low);
+	void mag_square(vector<complex<float> > & vec, vector<float> & vec_mag);
+	void Mel_EN(float (*w)[FFTLen/2+1],int num_filt, vector<float>& vec_mag, float * M_energy);
+	void Cepstrum(float *M_energy);
 
 int main()
 {
 	WAV header;    // This struct stores wave file header
 	FILE *sourcefile;
-	ofstream outfile1("cepstrum2.csv");     // This file stores output cepstrum
-	ofstream outfile2("weights2.csv");  // This file stores filter weights
-	sourcefile=fopen("../data/man_voice.wav","rb");  // open the wave file as a binary file
+	ofstream outfile1("../data/cepstrum_navi.csv");     // This file stores output cepstrum
+	ofstream outfile2("../data/weights_navi.csv");  // This file stores filter weights
+	sourcefile=fopen("../data/ZiraRUS_navi.wav","rb");  // open the wave file as a binary file
 	fread(&header,sizeof(WAV),1,sourcefile);   // read in the header
 	FS=header.nSamplesPerSec/1000;  // Obtain sampling frequency
 	if (HIGH>(int) (FS/2))                      // Check pre-defined high frequency
@@ -137,7 +128,6 @@ int main()
 	return 0;
 
 }
-
 // This function create a hamming window
 void InitHamming()
 {
@@ -318,11 +308,6 @@ void CreateFilt(float (*w)[FFTLen/2+1], int num_filt, int Fs, int high, int low)
 	      w[i-1][j-1]=w[i-1][j-1]/sum;
 	   sum=0.0;
    }
-   
-
-      
-    
-   
 }
 
 void mag_square(vector<complex<float> > &vec, vector<float> &vec_mag) // This function computes magnitude squared FFT
@@ -352,8 +337,6 @@ void Mel_EN(float (*w)[FFTLen/2+1],int num_filt, vector<float>& vec_mag, float *
 
 }
 
-
-
 // Compute Mel cepstrum
 
 void Cepstrum(float *M_energy)
@@ -369,4 +352,5 @@ void Cepstrum(float *M_energy)
     }	
 	  
 }
+
 

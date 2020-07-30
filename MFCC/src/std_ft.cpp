@@ -12,6 +12,12 @@ static const int vector_max_len =  13;
 static const int min_vector_len =  5;
 float vector_char[vector_max_len];
 
+int standard_features(const char* file_name, const char* file_name2, int sample_num, bool debug_print);
+
+int main(){
+    standard_features("cepstrum2.csv", "feature_nor.txt", 57, true);
+}
+
 int standard_features(const char* file_name, const char* file_name2, int sample_num, bool debug_print){
     float normalize_value=0;
     float instance_value = 0;
@@ -70,6 +76,3 @@ int standard_features(const char* file_name, const char* file_name2, int sample_
     return 0;
 }
 
-int main(){
-    standard_features("cepstrum2.csv", "feature_nor.txt", 57, true);
-}
