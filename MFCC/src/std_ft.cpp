@@ -5,11 +5,10 @@
 #include <string.h>
 #include "std_ft.h"
 
-char buffer[512];
-char tokenizer [] = ",\t\n\0";
-static const int vector_max_len =  13;
-static const int min_vector_len =  5;
-float vector_char[vector_max_len];
+char buffer2[512];
+char tokenizer2 [] = ",\t\n\0";
+static const int vector_max_len2 =  13;
+float vector_char2[vector_max_len2];
 
 standardization::standardization(){}
 
@@ -25,20 +24,20 @@ int standardization::standard_features(const char* cep_filename, const char* fea
         printf("File not found!!!\n");
     }
     while(!feof(fp)){
-        fgets(buffer, sizeof(buffer), fp);
-        char* tok_buffer = (char*)strtok(buffer, tokenizer);
+        fgets(buffer2, sizeof(buffer2), fp);
+        char* tok_buffer = (char*)strtok(buffer2, tokenizer2);
         int vector_index = 0;
         while(tok_buffer!=NULL){
-            vector_char[vector_index] = atof(tok_buffer);            
+            vector_char2[vector_index] = atof(tok_buffer);            
             vector_index++;
-            tok_buffer = strtok(NULL, tokenizer);            
+            tok_buffer = strtok(NULL, tokenizer2);            
         }
-        for(int i=0; i<vector_max_len-1; i++){                 
-            if(max_value < vector_char[i]){
-                max_value = vector_char[i];            
+        for(int i=0; i<vector_max_len2-1; i++){                 
+            if(max_value < vector_char2[i]){
+                max_value = vector_char2[i];            
             }
-            if(min_value > vector_char[i]){
-                min_value = vector_char[i];            
+            if(min_value > vector_char2[i]){
+                min_value = vector_char2[i];            
             }            
         }        
     }
@@ -50,16 +49,16 @@ int standardization::standard_features(const char* cep_filename, const char* fea
     }
     FILE *fp3 = fopen(feature_filename, "w");    
     while(!feof(fp2)){
-        fgets(buffer, sizeof(buffer), fp2);
-        char* tok_buffer = (char*)strtok(buffer, tokenizer);
+        fgets(buffer2, sizeof(buffer2), fp2);
+        char* tok_buffer = (char*)strtok(buffer2, tokenizer2);
         int vector_index = 0;
         while(tok_buffer!=NULL){
-            vector_char[vector_index] = atof(tok_buffer);                                  
+            vector_char2[vector_index] = atof(tok_buffer);                                  
             vector_index++;
-            tok_buffer = strtok(NULL, tokenizer);            
+            tok_buffer = strtok(NULL, tokenizer2);            
         }        
-        for(int i=0; i<vector_max_len; i++){
-            instance_value = vector_char[i];            
+        for(int i=0; i<vector_max_len2; i++){
+            instance_value = vector_char2[i];            
             normalize_value = (instance_value - min_value)/(max_value - min_value);                        
             fprintf(fp3, "%d,", int(normalize_value*256));
             
