@@ -9,15 +9,16 @@
 
 // Created by Xiaoyu Liu
 
-#include<iostream>
-#include<fstream>
-#include<cmath>
-#include<vector>
+#include <iostream>
+#include <fstream>
+#include <cmath>
+#include <vector>
 #include <complex> 
 #include <bitset> 
 #include "MFCC.h"
 
 using namespace std;
+using std::vector;
 
 MFCC::MFCC(){}
 
@@ -41,9 +42,11 @@ typedef struct     // WAV stores wave file header
 }WAV;
 
 // Global variables
-	const double PI=3.1415926536;
-	vector <double> Hamming;
-
+const int FiltNum1 = 26;
+const double PI=3.1415926536;
+vector <double> Hamming;
+vector<float> Coeff; // This stores cepstrum and log energy
+float FiltWeight[FiltNum1][257];
 // This function create a hamming window
 void MFCC::InitHamming(int FrmLen)
 {
@@ -162,9 +165,8 @@ void MFCC::FFT(const unsigned long & fftlen, vector<complex<float> >& vec)
 
 // This function initialize filter weights to 0
 
-void MFCC::InitFilt(const int FiltNum, const unsigned long FFTLen)
+void MFCC::InitFilt(float (*w)[257], const int FiltNum, const unsigned long FFTLen)
 {
-	float w[FiltNum][FFTLen/2+1];
   	int i,j;
   	for (i=0;i<FiltNum;i++)
     	for (j=0;j<FFTLen/2+1;j++)
@@ -173,8 +175,8 @@ void MFCC::InitFilt(const int FiltNum, const unsigned long FFTLen)
 
 // This function creates a Mel weight matrix
 
-void MFCC::CreateFilt(const int FiltNum, const unsigned long FFTLen, int Fs, int high, int low)
-{	float w[FiltNum][FFTLen/2+1];	
+void MFCC::CreateFilt(float (*w)[257], const int FiltNum, const unsigned long FFTLen, int Fs, int high, int low)
+{
    float df=(float) Fs/(float) FFTLen;    // FFT interval
    int indexlow=round((float) FFTLen*(float) low/(float) Fs); // FFT index of low freq limit
    int indexhigh=round((float) FFTLen*(float) high/(float) Fs); // FFT index of high freq limit
@@ -235,9 +237,8 @@ void MFCC::mag_square(vector<complex<float> > &vec, vector<float> &vec_mag, cons
        	   	   
 }
 
-void MFCC::Mel_EN(const int FiltNum, const unsigned long FFTLen, vector<float>& vec_mag, float * M_energy) // computes log energy of each channel
+void MFCC::Mel_EN(float (*w)[257], const int FiltNum, const unsigned long FFTLen, vector<float>& vec_mag, float * M_energy) // computes log energy of each channel
 {
-	float w[FiltNum][FFTLen/2+1];	
    int i,j;
    for (i=1;i<=FiltNum;i++)    // set initial energy value to 0
      M_energy[i-1]=0.0F;
@@ -254,8 +255,7 @@ void MFCC::Mel_EN(const int FiltNum, const unsigned long FFTLen, vector<float>& 
 // Compute Mel cepstrum
 
 void MFCC::Cepstrum(float *M_energy, const int FiltNum, const int PCEP)
-{
-	vector<float> Coeff; // This stores cepstrum and log energy
+{	
 	int i,j;
 	float Cep[PCEP];
     for (i=1;i<=PCEP;i++)
@@ -268,15 +268,16 @@ void MFCC::Cepstrum(float *M_energy, const int FiltNum, const int PCEP)
 	  
 }
 
-void MFCC::the_main_thing(const char* cep_filename, const char* weight_filename, const char* wav_filename)
+int MFCC::the_main_thing(const char* wav_filename, const char* cep_filename, const char* weight_filename, const int FiltNum, const int PCEP, int FrmLen, int FrmSpace, int HIGH, int LOW, int LOGENERGY, const unsigned long FFTLen)
 {
 	WAV header;    // This struct stores wave file header
 	FILE *sourcefile;
+	sourcefile=fopen(wav_filename, "rb");  // open the wave file as a binary file
 	ofstream outfile1(cep_filename);     // This file stores output cepstrum
 	ofstream outfile2(weight_filename);  // This file stores filter weights
-	sourcefile=fopen(wav_filename);  // open the wave file as a binary file
+	
 	fread(&header,sizeof(WAV), 1, sourcefile);   // read in the header
-	FS=header.nSamplesPerSec/1000;  // Obtain sampling frequency
+	int FS=header.nSamplesPerSec/1000;  // Obtain sampling frequency
 	if (HIGH>(int) (FS/2))                      // Check pre-defined high frequency
 	   HIGH=(int) (FS/2);
 	if (LOW>HIGH)                               // Check pre-defined low frequency
@@ -293,8 +294,8 @@ void MFCC::the_main_thing(const char* cep_filename, const char* weight_filename,
 	vector <float> fft_mag;                // This is the magnitude squared FFT
 		
 	InitHamming(FrmLen);      //Create a Hamming window of length FrmLen
-	InitFilt(FiltNum, FFTLen); // Initialize filter weights to all zero
-	CreateFilt(FiltNum, FiltNum, FS*1000, HIGH*1000, LOW*1000);    // Compute filter weights
+	InitFilt(FiltWeight, FiltNum, FFTLen); // Initialize filter weights to all zero
+	CreateFilt(FiltWeight, FiltNum, FiltNum, FS*1000, HIGH*1000, LOW*1000);    // Compute filter weights
 	for (int i=0;i<FiltNum; i++)          // Output filter weights to a file
 	  { for (int j=0;j<FFTLen/2+1;j++)
 	       outfile2<<FiltWeight[i][j]<<' ';
@@ -309,7 +310,7 @@ void MFCC::the_main_thing(const char* cep_filename, const char* weight_filename,
 		energy=FrmEnergy(buffer, FrmLen);//Get frame energy without windowing
 		zero_fft(data,zero_padded, FrmLen, FFTLen); // This step first zero pad data, and do FFT
 		mag_square(zero_padded, fft_mag, FFTLen);    // This step does magnitude square for the first half of FFT
-        Mel_EN(FiltNum, FFTLen, fft_mag, mel_energy); // This step computes output log energy of each channel
+        Mel_EN(FiltWeight, FiltNum, FFTLen, fft_mag, mel_energy); // This step computes output log energy of each channel
 		Cepstrum(mel_energy, FiltNum, PCEP);
 		if (LOGENERGY)   // whether to include log energy term or not
 		   Coeff.push_back(energy);

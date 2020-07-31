@@ -3,8 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
-using namespace std;
+#include "std_ft.h"
 
 char buffer[512];
 char tokenizer [] = ",\t\n\0";
@@ -12,20 +11,15 @@ static const int vector_max_len =  13;
 static const int min_vector_len =  5;
 float vector_char[vector_max_len];
 
-int standard_features(const char* file_name, const char* file_name2);
+standardization::standardization(){}
 
-int main(){
-    standard_features("../data/cepstrum_Znavi.csv", "../data/feature_Znavi.csv");
-    printf("complete!\n");
-}
-
-int standard_features(const char* file_name, const char* file_name2){
+int standardization::standard_features(const char* cep_filename, const char* feature_filename){
     float normalize_value=0;
     float instance_value = 0;
     float max_value = 0;
     float min_value = 0;
     
-    FILE *fp = fopen(file_name, "r");
+    FILE *fp = fopen(cep_filename, "r");
     if(fp == NULL){
         return -1;
         printf("File not found!!!\n");
@@ -49,12 +43,12 @@ int standard_features(const char* file_name, const char* file_name2){
         }        
     }
     fclose(fp);
-     FILE *fp2 = fopen(file_name, "r");
-    if(fp2 == NULL){
-        return -1;
+    FILE *fp2 = fopen(cep_filename, "r");
+    if(fp2 == NULL){ 
+        return -1;       
         printf("File not found!!!\n");
     }
-    FILE *fp3 = fopen(file_name2, "w");    
+    FILE *fp3 = fopen(feature_filename, "w");    
     while(!feof(fp2)){
         fgets(buffer, sizeof(buffer), fp2);
         char* tok_buffer = (char*)strtok(buffer, tokenizer);
@@ -74,6 +68,6 @@ int standard_features(const char* file_name, const char* file_name2){
     }
     fclose(fp3);
     fclose(fp2);
-    return 0;
+
 }
 
